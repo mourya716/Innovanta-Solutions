@@ -7,10 +7,7 @@
     },
     {
       "src": "*.html",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "."
-      }
+      "use": "@vercel/static"
     }
   ],
   "routes": [
