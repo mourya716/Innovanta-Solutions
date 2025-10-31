@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Animations</title>
+    <!-- 1. Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Load the dotlottie web component library -->
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
+    
+    <style>
+        /* Ensure html and body take full height */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- 
+      We use Flexbox to center the items.
+      - min-h-screen: Makes the container at least the full height of the viewport.
+      - flex: Enables flexbox.
+      - items-center: Centers the items vertically.
+      - justify-center: Centers the items horizontally.
+      - flex-col md:flex-row: Stacks items vertically on small screens and in a row on medium screens and up.
+      - gap-8 md:gap-16: Adds spacing between the items, with more space on larger screens.
+    -->
+    <div class="min-h-screen flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 p-4">
+    
+        <!-- 1. Lottie animation (Left) -->
+        <dotlottie-wc 
+            src="https://lottie.host/47207ab5-fc53-4643-ac99-97ede3160ae6/qq3yKR0Q2x.lottie" 
+            style="width: 600px; height: 600px;" 
+            autoplay 
+            loop>
+        </dotlottie-wc>
+
+        <!-- 2. "Coming Soon" Text (Right) -->
+        <div class="w-[300px] h-[300px] flex items-center justify-center">
+            <span class="text-3xl font-semibold text-gray-600">
+                Coming Soon
+            </span>
+        </div>
+        
+    </div>
+

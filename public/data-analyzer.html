@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Data Analysis Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-slate-50 font-['Inter']">
+
+    <div id="analyzer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <main class="p-6">
+                <div class="max-w-4xl mx-auto text-center mb-10">
+                    <h1 class="text-4xl font-bold text-slate-900 mb-4">AI-powered Data Consolidation</h1>
+                    <p class="text-lg text-gray-600 mb-4">Upload CSV files and get AI-powered insights instantly.</p>
+
+                    <div class="flex items-center justify-center space-x-3">
+                        <label for="model-select" class="text-slate-700 font-medium">AI Model:</label>
+                        <select id="model-select" class="border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="mini">Mini (Gemini)</option>
+                            <option value="max" disabled>Max (Coming Soon)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="upload-area" class="border-2 border-dashed rounded-xl p-8 text-center mb-8 border-slate-300 hover:border-blue-400 transition-all duration-300">
+                    <div class="space-y-4">
+                        <i data-lucide="upload" class="w-16 h-16 mx-auto text-slate-400"></i>
+                        <h4 class="text-lg font-semibold text-slate-900 mb-2">Upload Your Business Data</h4>
+                        <p class="text-slate-600 mb-4">Drag and drop your CSV file here, or click to browse</p>
+                        <label class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium cursor-pointer transition-colors">
+                            <i data-lucide="upload" class="w-5 h-5"></i>
+                            <span>Choose CSV File</span>
+                            <input type="file" accept=".csv" class="hidden" id="file-input" />
+                        </label>
+                        <div class="text-xs text-slate-500">Supported: CSV • Max 10MB</div>
+                    </div>
+                </div>
+
+                <div id="analysis-progress" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 hidden">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div>
+                            <h4 class="font-semibold text-blue-900">AI Analysis in Progress</h4>
+                            <p class="text-blue-700 text-sm">
+                                Analyzing "<strong id="file-name-progress">...</strong>"
+                            </p>
+                            <p id="loading-text" class="text-blue-600 text-sm font-medium mt-1">Initializing...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analysis-results" class="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden hidden">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-900">AI Analysis Complete</h3>
+                                    <p class="text-slate-600">Insights generated successfully</p>
+                                </div>
+                            </div>
+                            <button id="download-report" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium cursor-pointer transition-colors">
+                                <i data-lucide="download" class="w-5 h-5"></i>
+                                <span>Download Report</span>
+                            </button>
+                        </div>
+
+                        <div id="summary-text" class="text-slate-700 bg-slate-50 p-4 rounded-lg mb-6 leading-relaxed">
+                            Analysis summary will appear here...
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-0">
+                        <div class="lg:col-span-3 bg-white p-6 border-t border-slate-200 lg:border-t-0">
+                            <h3 class="text-lg font-bold text-slate-900 mb-3">Financial Overview (Mock Data)</h3>
+                            <div class="relative h-80">
+                                 <canvas id="analysis-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-2 bg-slate-800 p-6">
+                            <div id="insights-recommendations-text">
+                                </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- NEW: JS Global variables ---
+        const { jsPDF } = window.jspdf; // Get the PDF library
+        let myAnalysisChart = null; 
+        let loadingInterval = null; // To control the loading animation
+
+        // --- Element Selectors ---
+        const modal = document.getElementById("analyzer-modal");
+        const closeButton = document.getElementById("close-modal");
+        const fileInput = document.getElementById("file-input");
+        const uploadArea = document.getElementById("upload-area");
+        const analysisProgress = document.getElementById("analysis-progress");
+        const analysisResults = document.getElementById("analysis-results");
+        const modelSelect = document.getElementById("model-select");
+        const summaryText = document.getElementById("summary-text");
+        const insightsRecsText = document.getElementById("insights-recommendations-text");
+        const chartCanvas = document.getElementById('analysis-chart');
+        
+        // --- NEW: Loading UI Selectors ---
+        const fileNameProgress = document.getElementById("file-name-progress");
+        const loadingText = document.getElementById("loading-text");
+        
+        // --- NEW: Button Selector ---
+        const downloadButton = document.getElementById("download-report");
+
+        // --- Event Listeners ---
+        closeButton.addEventListener("click", () => {
+            modal.classList.add("hidden");
+            document.body.style.overflow = "";
+        });
+
+        fileInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) handleFileUpload(file);
+        });
+        
+        // --- NEW: Download Button Listener ---
+        downloadButton.addEventListener("click", () => {
+            // Get the data we stored on the button itself
+            const summary = downloadButton.dataset.summary;
+            const insights = JSON.parse(downloadButton.dataset.insights);
+            const recs = JSON.parse(downloadButton.dataset.recs);
+            
+            generatePDFReport(summary, insights, recs);
+        });
+
+        // --- Drag and Drop Handlers ---
+        uploadArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadArea.classList.add("border-blue-500", "bg-blue-50");
+        });
+        uploadArea.addEventListener("dragleave", () => {
+            uploadArea.classList.remove("border-blue-500", "bg-blue-50");
+        });
+        uploadArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove("border-blue-500", "bg-blue-50");
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                handleFileUpload(files[0]);
+            } else {
+                alert("Please drop a CSV file.");
+            }
+        });
+
+        // --- NEW: Loading Animation Function ---
+        function startLoadingAnimation(fileName) {
+            fileNameProgress.textContent = fileName;
+            
+            const loadingStates = [
+                "Parsing CSV...",
+                "Connecting to AI model...",
+                "Identifying key patterns...",
+                "Analyzing trends...",
+                "Generating insights...",
+                "Compiling recommendations...",
+                "Almost there..."
+            ];
+            let currentState = 0;
+            loadingText.textContent = loadingStates[0];
+
+            // Clear any old interval
+            if (loadingInterval) clearInterval(loadingInterval);
+
+            loadingInterval = setInterval(() => {
+                currentState = (currentState + 1) % loadingStates.length;
+                loadingText.textContent = loadingStates[currentState];
+            }, 1800);
+        }
+
+        // --- Main File Handler ---
+        async function handleFileUpload(file) {
+            if (modelSelect.value === "max") {
+                alert("🚀 Max Model is coming soon! Try 'Mini (Gemini)' for now.");
+                return;
+            }
+
+            uploadArea.classList.add("hidden");
+            analysisResults.classList.add("hidden"); // Hide old results
+            analysisProgress.classList.remove("hidden");
+            
+            // NEW: Start the loading animation
+            startLoadingAnimation(file.name);
+
+            const text = await file.text();
+
+            try {
+                const useMockData = true;
+                
+                if (useMockData) {
+                    await new Promise(resolve => setTimeout(resolve, 2500)); // Increased delay for animation
+                    
+                    // --- (Mock data generation is the same as before) ---
+                    const rows = text.split('\n');
+                    const headers = rows[0].split(',');
+                    const totalRows = rows.length - 1;
+                    
+                    const mockAnalysis = {
+                        summary: `Analyzed a dataset containing ${totalRows} records with ${headers.length} columns: ${headers.map(h => `"${h}"`).join(', ')}. The data appears to be business-related with good overall quality.`,
+                        chartData: {
+                            labels: ['Year 1', 'Year 2', 'Year 3'],
+                            // --- THIS IS THE FIXED CODE ---
+                            revenues: [Math.floor(Math.random()*500000+500000), Math.floor(Math.random()*500000+600000), Math.floor(Math.random()*500000+700000)],
+                            expenses: [Math.floor(Math.random()*300000+300000), Math.floor(Math.random()*300000+350000), Math.floor(Math.random()*300000+400000)],
+                            profits: [],
+                        },
+                        insights: [
+                            `Dataset Completeness: Over ${Math.floor(Math.random() * 20 + 80)}% of records have all required fields populated.`,
+                            `Detected ${Math.floor(Math.random() * 5 + 3)} distinct patterns in the data that suggest seasonal trends.`,
+                            `Identified potential optimization opportunities in ${Math.floor(Math.random() * 3 + 2)} key areas.`
+                        ],
+                        recommendations: [
+                            "Consider implementing data validation rules to improve data quality further.",
+                            "Regular monitoring of key metrics would help identify trends earlier.",
+                            "Automated reporting could streamline the analysis process."
+                        ]
+                    };
+                    for(let i=0; i<mockAnalysis.chartData.labels.length; i++) {
+                        mockAnalysis.chartData.profits.push(mockAnalysis.chartData.revenues[i] - mockAnalysis.chartData.expenses[i]);
+                    }
+                    // --- (End of mock data generation) ---
+
+                    // --- NEW: Store raw data on the download button for the PDF ---
+                    downloadButton.dataset.summary = mockAnalysis.summary;
+                    downloadButton.dataset.insights = JSON.stringify(mockAnalysis.insights);
+                    downloadButton.dataset.recs = JSON.stringify(mockAnalysis.recommendations);
+
+                    // --- Populate UI (Same as before) ---
+                    summaryText.innerHTML = `<p>${mockAnalysis.summary}</p>`;
+                    const insightsRecsHTML = `
+                        <h3 class="text-xl font-bold text-slate-100 mb-4">Key Insights:</h3>
+                        <ul class="text-slate-300 space-y-3 mb-6">
+                            ${mockAnalysis.insights.map(insight => `<li class="flex items-start"><i data-lucide="bar-chart-3" class="w-5 h-5 mr-3 text-blue-400 shrink-0 mt-0.5"></i><span>${insight}</span></li>`).join('\n')}
+                        </ul>
+                        <h3 class="text-xl font-bold text-slate-100 mb-4">Recommendations:</h3>
+                        <ul class="text-slate-300 space-y-3">
+                            ${mockAnalysis.recommendations.map(rec => `<li class="flex items-start"><i data-lucide="check-circle" class="w-5 h-5 mr-3 text-green-400 shrink-0 mt-0.5"></i><span>${rec}</span></li>`).join('\n')}
+                        </ul>
+                    `;
+                    insightsRecsText.innerHTML = insightsRecsHTML;
+                    
+                    // --- Chart Rendering (Same as before) ---
+                    const ctx = chartCanvas.getContext('2d');
+                    if (myAnalysisChart) myAnalysisChart.destroy();
+                    const gradientBlue = ctx.createLinearGradient(0,0,0,300); gradientBlue.addColorStop(0,'rgba(59,130,246,0.8)'); gradientBlue.addColorStop(1,'rgba(59,130,246,0.1)');
+                    const gradientRed = ctx.createLinearGradient(0,0,0,300); gradientRed.addColorStop(0,'rgba(239,68,68,0.8)'); gradientRed.addColorStop(1,'rgba(239,68,68,0.1)');
+                    const gradientGreen = ctx.createLinearGradient(0,0,0,300); gradientGreen.addColorStop(0,'rgba(22,163,74,0.5)'); gradientGreen.addColorStop(1,'rgba(22,163,74,0.0)');
+                    
+                    myAnalysisChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: mockAnalysis.chartData.labels,
+                            datasets: [
+                                { type: 'line', label: 'Profit (INR)', data: mockAnalysis.chartData.profits, backgroundColor: gradientGreen, borderColor: 'rgba(22,163,74,1)', borderWidth: 3, fill: true, tension: 0.4, pointBackgroundColor: 'rgba(22,163,74,1)', pointRadius: 4 },
+                                { type: 'bar', label: 'Revenues (INR)', data: mockAnalysis.chartData.revenues, backgroundColor: gradientBlue, borderColor: 'rgba(59,130,246,1)', borderWidth: 1, borderRadius: 4 },
+                                { type: 'bar', label: 'Expenses (INR)', data: mockAnalysis.chartData.expenses, backgroundColor: gradientRed, borderColor: 'rgba(239,68,68,1)', borderWidth: 1, borderRadius: 4 }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: '#e2e8f0' }, ticks: { callback: (v) => '₹' + (v/1000) + 'k' } },
+                                x: { grid: { display: false } }
+                            },
+                            plugins: {
+                                legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+                                tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${new Intl.NumberFormat('en-IN', {style:'currency',currency:'INR',maximumFractionDigits:0}).format(c.parsed.y)}` } }
+                            }
+                        }
+                    });
+                    
+                    // --- NEW: Stop loading animation ---
+                    clearInterval(loadingInterval);
+                    
+                    analysisProgress.classList.add("hidden");
+                    analysisResults.classList.remove("hidden");
+                    lucide.createIcons(); // Redraw icons for the new lists
+                    return;
+                }
+                
+                // ... (Your original API logic would go here) ...
+                
+            } catch (err) {
+                // --- NEW: Stop loading animation on error ---
+                clearInterval(loadingInterval);
+                
+                analysisProgress.classList.add("hidden");
+                analysisResults.classList.add("hidden");
+                uploadArea.classList.remove("hidden");
+                alert("Error: " + err.message);
+            }
+        }
+        
+        // --- NEW: PDF Generation Function ---
+        function generatePDFReport(summary, insights, recs) {
+            const doc = new jsPDF();
+            const margin = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const usableWidth = pageWidth - (margin * 2);
+            let y = 20; // Current Y position
+
+            // 1. Title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text("AI Analysis Report", margin, y);
+            y += 15;
+
+            // 2. Summary
+            doc.setFontSize(14);
+            doc.text("Summary", margin, y);
+            y += 7;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            let lines = doc.splitTextToSize(summary, usableWidth);
+            doc.text(lines, margin, y);
+            y += (lines.length * 5) + 10; // Add padding
+
+            // 3. Key Insights
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text("Key Insights", margin, y);
+            y += 7;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            insights.forEach(insight => {
+                lines = doc.splitTextToSize(`• ${insight}`, usableWidth);
+                doc.text(lines, margin, y);
+                y += (lines.length * 5) + 2;
+            });
+            y += 8; // Add padding
+
+            // 4. Recommendations
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text("Recommendations", margin, y);
+            y += 7;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            recs.forEach(rec => {
+                lines = doc.splitTextToSize(`• ${rec}`, usableWidth);
+                doc.text(lines, margin, y);
+                y += (lines.length * 5) + 2;
+            });
+
+            // 5. Add Chart on a New Page
+            doc.addPage();
+            y = 20;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text("Financial Overview Chart", margin, y);
+            y += 10;
+
+            const chartImg = myAnalysisChart.toBase64Image('image/png', 1.0);
+            doc.addImage(chartImg, 'PNG', margin, y, 170, 85); // (img, type, x, y, w, h)
+
+            // 6. Save the file
+            doc.save('ai-analysis-report.pdf');
+        }
+
+    </script>
+</body>
+</html>
