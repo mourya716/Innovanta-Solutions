@@ -1,0 +1,709 @@
+<DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innovanta AI Dashboard - Secure MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Lottie Animation -->
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
+
+    <style>
+        /* BASE & THEME */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --accent-color: #3b82f6;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --card-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            --accent-color: #58a6ff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overscroll-behavior-y: contain;
+        }
+
+        .navbar { 
+            background-color: var(--bg-secondary); 
+            box-shadow: var(--card-shadow);
+        }
+
+        /* CARDS & CONTAINERS */
+        .dashboard-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* KPI VISUALS */
+        .stat-value { 
+            color: var(--accent-color); 
+            text-shadow: 0 0 5px rgba(59, 130, 246, 0.2); 
+        }
+        .kpi-wrapper { padding: 1.5rem; }
+        .kpi-label { 
+            font-weight: 500; 
+            color: var(--text-secondary); 
+        }
+        .kpi-default-border { border-left: 6px solid var(--accent-color); }
+        .kpi-green-border { border-left: 6px solid #22c55e; }
+        .kpi-red-border { border-left: 6px solid #ef4444; }
+        .kpi-yellow-border { border-left: 6px solid #eab308; }
+        .kpi-green-text { color: #22c55e !important; }
+        .kpi-red-text { color: #ef4444 !important; }
+        .kpi-yellow-text { color: #eab308 !important; }
+
+        /* LOADER */
+        .loader-spinner {
+            border-top-color: var(--accent-color);
+            border-left-color: var(--accent-color);
+            border-right-color: transparent;
+            border-bottom-color: transparent;
+        }
+
+        /* LOGIN */
+        #auth-screen { 
+            background-color: var(--bg-secondary); 
+            border: 1px solid var(--border-color); 
+            box-shadow: var(--card-shadow);
+        }
+        #auth-screen input { 
+            background-color: var(--bg-primary); 
+            border-color: var(--border-color); 
+            color: var(--text-primary);
+        }
+        #login-button { 
+            background-image: linear-gradient(to right, var(--accent-color), #4092e0); 
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); 
+            color: white; 
+        }
+        #signup-button { 
+            background-image: none; 
+            background-color: var(--bg-primary); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-primary); 
+            box-shadow: var(--card-shadow);
+        }
+        #signup-button:hover { 
+            background-color: var(--bg-secondary); 
+            border-color: var(--border-color); 
+        }
+
+        /* AI RESULTS STYLING (Markdown Rendered) */
+        #insights-container h3 { 
+            font-size: 1.6rem; 
+            font-weight: 800; 
+            margin-top: 2rem; 
+            margin-bottom: 1rem; 
+            color: var(--accent-color); 
+            border-bottom: 2px solid var(--border-color); 
+            padding-bottom: 0.75rem; 
+            text-shadow: 0 0 5px rgba(59, 130, 246, 0.2); 
+        }
+        #insights-container p { 
+            margin-bottom: 1rem; 
+            line-height: 1.6; 
+            color: var(--text-primary); 
+        }
+        #insights-container ul { 
+            list-style: none; 
+            padding-left: 0; 
+        }
+        #insights-container li { 
+            margin-bottom: 0.8rem; 
+            padding: 1rem; 
+            background-color: var(--bg-secondary); 
+            border-radius: 8px; 
+            border-left: 4px solid #22c55e; 
+            color: var(--text-primary); 
+            position: relative; 
+            padding-left: 3rem; 
+        }
+        /* Style list items specifically for Actionable Insights & KPIs */
+        #insights-container h3:has(+ ul) + ul > li::before, /* Direct sibling UL */
+        #insights-container h3:has(+ p + ul) + p + ul > li::before /* UL after a P */
+         {
+            content: "\f058"; /* Font Awesome Circle Check icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute; left: 1rem; top: 1rem;
+            color: #3fb950;
+            font-size: 1.2rem;
+        }
+        /* Style list items specifically for Critical Alerts */
+        #insights-container h3:contains("CRITICAL ALERTS") + ul > li {
+            border-left: 4px solid #f85149;
+            background-color: #2b1f1f;
+        }
+        #insights-container h3:contains("CRITICAL ALERTS") + ul > li::before {
+            content: "\f071"; /* Font Awesome Warning icon */
+            color: #f85149;
+        }
+         /* Style "No Critical Alerts" paragraph */
+        #insights-container h3:contains("CRITICAL ALERTS") + p {
+             color: #3fb950; /* Green text if no alerts */
+             font-weight: 600;
+             padding: 1rem;
+             background-color: #1f2937;
+             border-radius: 8px;
+             border-left: 4px solid #3fb950;
+         }
+
+
+        /* History List Styling */
+        .history-item { 
+            cursor: pointer; 
+            border-left: 4px solid transparent; 
+            transition: background-color 0.2s ease, border-color 0.2s ease; 
+        }
+        .history-item:hover, .history-item.active { 
+            background-color: var(--bg-secondary); 
+            border-left-color: var(--accent-color); 
+        }
+
+        /* Theme Toggle Button */
+        #theme-toggle {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #theme-toggle:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-color);
+        }
+
+        /* Ensure Font Awesome loads - already included in head */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Navbar -->
+    <header class="bg-[#0d1117] border-b border-gray-800 sticky top-0 z-10 py-3">
+        <nav class="container mx-auto px-6 flex items-center justify-between max-w-7xl">
+            <div class="flex items-baseline space-x-4">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-400 leading-tight">INNOVANTA</h1>
+                    <div class="text-sm text-blue-300 tracking-widest mt-0.5">AI CONTROL PANEL</div>
+                </div>
+            </div>
+            <div id="auth-buttons" class="flex items-center space-x-4">
+                <button id="theme-toggle" class="px-3 py-2 rounded-lg text-gray-400 hover:text-blue-400 transition-colors" aria-label="Toggle theme">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <span id="user-email-display" class="text-sm hidden text-gray-400"></span>
+                <button id="logout-button" class="hidden text-sm text-gray-400 hover:text-blue-400 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="app-container" class="container mx-auto px-4 py-6 max-w-7xl">
+
+        <!-- Login Screen -->
+        <section id="auth-screen" class="max-w-6xl mx-auto rounded-xl shadow-2xl mt-6 bg-[#0d1117]">
+            <div class="flex flex-col lg:flex-row">
+                <!-- Left side: Login Form -->
+                <div class="w-full lg:w-[480px] p-6 border-r border-gray-800">
+                    <div class="text-left mb-4">
+                        <h2 class="text-3xl font-bold text-blue-500">SIGN IN</h2>
+                        <p class="text-gray-400 text-sm mt-1">Secure Enterprise Login</p>
+                    </div>
+
+                    <p id="auth-error" class="mb-4 hidden rounded-md bg-red-900 bg-opacity-50 p-2 text-sm font-semibold text-red-400 border border-red-700"></p>
+
+                    <!-- Email/Password Form -->
+                    <form id="auth-form" class="space-y-3">
+                        <div>
+                            <label for="email" class="block text-sm font-medium mb-1 text-gray-300">Email Address</label>
+                            <input type="email" id="email" name="email" required
+                                placeholder="Enter your email"
+                                class="block w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium mb-1 text-gray-300">Password</label>
+                            <input type="password" id="password" name="password" required
+                                placeholder="Enter your password"
+                                class="block w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button type="button" id="login-button"
+                                class="flex-1 bg-blue-500 text-white font-semibold text-base py-2.5 rounded-lg shadow-md transition duration-200 hover:bg-blue-600">
+                                <i class="fas fa-sign-in-alt mr-2"></i> LOGIN
+                            </button>
+                            <button type="button" id="signup-button"
+                                class="flex-1 bg-gray-800 text-gray-200 font-semibold text-base py-2.5 rounded-lg shadow-md border border-gray-700 transition duration-200 hover:bg-gray-700">
+                                <i class="fas fa-user-plus mr-2"></i> SIGN UP
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="relative my-4">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-800"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-[#0d1117] text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <!-- Alternative Login Methods (side-by-side on desktop) -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <!-- Google Login -->
+                        <button type="button" id="google-login"
+                            class="w-full sm:w-1/2 flex items-center justify-center space-x-2 bg-white text-gray-800 font-semibold text-sm py-2.5 rounded-lg shadow-sm border border-gray-200 transition duration-200 hover:bg-gray-100">
+                            <img src="https://www.google.com/favicon.ico" alt="Google" class="w-4 h-4">
+                            <span>Google</span>
+                        </button>
+
+                        <!-- Phone Login -->
+                        <button type="button" id="phone-login"
+                            class="w-full sm:w-1/2 flex items-center justify-center space-x-2 bg-gray-800 text-gray-200 font-semibold text-sm py-2.5 rounded-lg shadow-sm border border-gray-700 transition duration-200 hover:bg-gray-700">
+                            <i class="fas fa-phone text-green-400"></i>
+                            <span>Phone</span>
+                        </button>
+                    </div>
+
+                    <!-- Phone Verification Dialog (Hidden by default) -->
+                    <div id="phone-verification-dialog" class="hidden space-y-4 mt-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
+                        <div>
+                            <label for="phone" class="block text-sm font-medium mb-1.5 text-gray-300">Phone Number</label>
+                            <input type="tel" id="phone" placeholder="+1234567890"
+                                class="block w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div id="recaptcha-container" class="flex justify-center"></div>
+                        <button type="button" id="send-code"
+                            class="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-200">
+                            Send Code
+                        </button>
+                        <div class="hidden space-y-3" id="verification-code-section">
+                            <input type="text" id="verification-code" placeholder="Enter verification code"
+                                class="block w-full p-3 rounded-lg border border-gray-700 bg-gray-900 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <button type="button" id="verify-code"
+                                class="w-full bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-600 transition duration-200">
+                                Verify
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right side: Lottie Animation (Hidden on mobile) -->
+                <div class="hidden lg:flex flex-1 justify-center items-center p-8">
+                    <div class="relative w-full max-w-lg">
+                        <dotlottie-wc 
+                            src="https://lottie.host/ea30af55-3e5f-4f76-9465-ffcc7c78ab98/waOPFnQ7K6.lottie" 
+                            style="width: 100%; height: auto; min-height: 400px;" 
+                            autoplay 
+                            loop>
+                        </dotlottie-wc>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Screen (Hidden until logged in) -->
+        <section id="dashboard-screen" class="hidden pt-4 grid lg:grid-cols-4 gap-6">
+
+            <!-- Left Column: History Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="dashboard-card p-6 sticky top-20">
+                    <h2 class="text-xl font-extrabold text-white mb-4 flex items-center border-b border-gray-700 pb-3">
+                        <i class="fas fa-history text-blue-400 mr-3"></i> Analysis History
+                    </h2>
+                    <div id="history-list" class="space-y-2 max-h-[70vh] overflow-y-auto">
+                        <p class="text-gray-500 text-sm text-center py-4">No history found.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Main Dashboard & Analysis -->
+            <div class="lg:col-span-3">
+                <h1 class="text-4xl font-extrabold text-white mb-8 border-b border-gray-700 pb-4 tracking-wider">ENTERPRISE ANALYTICS OVERVIEW</h1>
+
+                <!-- Upload Area & Status (Data Consolidation) -->
+                <div class="dashboard-card p-8 mb-8">
+                    <h2 class="text-2xl font-extrabold text-white mb-4 flex items-center">
+                        <i class="fas fa-upload text-blue-400 mr-4"></i> 1. Secure Data Ingestion & Analysis Trigger
+                    </h2>
+                    <p class="text-gray-400 mb-6">Upload raw CSV file (max 10MB) for immediate, fragmented data unification and deep intelligence processing.</p>
+
+                    <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+                        <input type="file" id="csv-upload" accept=".csv" class="flex-1 w-full md:w-auto text-sm text-gray-200 border border-gray-600 rounded-lg cursor-pointer bg-gray-700 p-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition duration-300">
+
+                        <button id="analyze-button" class="bg-green-600 text-white font-extrabold text-lg py-3 px-8 rounded-lg shadow-xl hover:bg-green-700 transition duration-300 disabled:opacity-50 flex items-center justify-center transform hover:scale-[1.02] w-full md:w-auto" disabled>
+                            <i class="fas fa-satellite-dish mr-2"></i> Launch AI Analysis
+                        </button>
+                    </div>
+
+                    <p id="upload-status" class="mt-4 text-sm text-gray-400">Awaiting secure data input...</p>
+                </div>
+
+                <!-- KPI Cards (Real-time Insights) -->
+                <div class="grid md:grid-cols-3 gap-6">
+                     <div id="kpi-card-total" class="dashboard-card kpi-wrapper kpi-default-border"><p class="text-sm kpi-label flex items-center"><i class="fas fa-file-csv mr-2 text-blue-500"></i> Records Processed</p><p id="kpi-total" class="stat-value text-5xl font-extrabold mt-2">0</p></div>
+                     <div id="kpi-card-roi" class="dashboard-card kpi-wrapper kpi-default-border"><p class="text-sm kpi-label flex items-center"><i class="fas fa-percentage mr-2"></i> Projected ROI (Q+1)</p><p id="kpi-roi" class="stat-value text-5xl font-extrabold mt-2">--</p></div>
+                     <div id="kpi-card-alerts" class="dashboard-card kpi-wrapper kpi-default-border"><p class="text-sm kpi-label flex items-center"><i class="fas fa-exclamation-triangle mr-2"></i> Critical Alerts</p><p id="kpi-alerts" class="stat-value text-5xl font-extrabold mt-2">0</p></div>
+                </div>
+
+                <!-- Detailed Analysis Panel -->
+                <div class="dashboard-card p-8 mt-8">
+                    <h2 class="text-3xl font-extrabold text-white mb-6 flex items-center">
+                        <i class="fas fa-cogs text-purple-400 mr-4"></i> 2. Detailed AI Business Report
+                    </h2>
+
+                    <!-- Loading State -->
+                    <div id="loading-state" class="hidden text-center py-16 space-y-4">
+                        <div class="loader-spinner animate-spin rounded-full w-20 h-20 border-8 border-t-transparent mx-auto"></div>
+                        <p class="text-2xl font-bold text-blue-400">Processing Data... Establishing Cognitive Link...</p>
+                        <p class="text-gray-400 text-lg">Innovanta AI is synthesizing insights, this may take up to 30 seconds.</p>
+                    </div>
+
+                     <!-- Error State -->
+                     <div id="error-state" class="hidden text-center py-16 space-y-4 dashboard-card bg-red-900 bg-opacity-30 border-red-700 p-6">
+                         <i class="fas fa-times-circle text-red-400 text-6xl mx-auto"></i>
+                         <p class="text-2xl font-bold text-red-400">Analysis Failed</p>
+                         <p id="error-message" class="text-gray-300 text-lg">An error occurred during processing.</p>
+                     </div>
+
+
+                    <!-- Results Output -->
+                    <div id="insights-container" class="space-y-4 min-h-52">
+                        <p id="insights-placeholder" class="text-xl text-center text-gray-500 py-16">Upload a file to view AI analysis.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        // Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut,
+            GoogleAuthProvider,
+            signInWithPopup,
+            RecaptchaVerifier,
+            signInWithPhoneNumber
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Import Functions SDK
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWZNwvB9T5ZcILFd3QpE84zNh9qZozNjQ",
+            authDomain: "innovanta-ai-app.firebaseapp.com",
+            projectId: "innovanta-ai-app",
+            storageBucket: "innovanta-ai-app.firebasestorage.app",
+            messagingSenderId: "217221237313",
+            appId: "1:217221237313:web:17290eadf94310cb57d4c0",
+            measurementId: "G-VG5HNMSYC4"
+        };
+        // ----------------------------------------
+
+        // Initialize Firebase
+        let app, auth, functions, analytics;
+        try {
+            app = initializeApp(firebaseConfig);
+            analytics = getAnalytics(app);  // Initialize Analytics
+            auth = getAuth(app);
+            functions = getFunctions(app); // Initialize Functions SDK
+            setLogLevel('debug'); // Enable detailed logging
+            console.log("Firebase Initialized Successfully with Analytics.");
+        } catch (e) {
+            console.error("CRITICAL FIREBASE INIT ERROR:", e.message);
+            document.body.innerHTML = `<div style="color: #f85149; background-color: #2b1f1f; border: 1px solid #f85149; padding: 20px; font-size: 1.5em; text-align: center; margin: 20px; border-radius: 8px;"><h2 style="margin-bottom: 10px;">Critical Error</h2><p>Could not connect to backend services. Ensure Firebase config is correct.</p><p style="font-size: 0.8em; color: #8b949e; margin-top: 15px;">Details: ${e.message}</p></div>`;
+            throw new Error("Firebase Initialization Failed");
+        }
+
+        // --- DOM Elements ---
+    const authScreen = document.getElementById('auth-screen');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const signupButton = document.getElementById('signup-button');
+        const logoutButton = document.getElementById('logout-button');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const authError = document.getElementById('auth-error');
+
+    let currentUserId = null;
+    let isAnalyzing = false;
+
+    // Dashboard and analysis UI removed from this page; handled in app.html
+    // (This file now only contains authentication UI and logic.)
+
+    // --- AUTHENTICATION LOGIC ---
+        let confirmationResult = null;
+        let recaptchaVerifier = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User is logged in:", user.uid);
+                currentUserId = user.uid;
+                userEmailDisplay.textContent = user.email || user.phoneNumber || 'User';
+                userEmailDisplay.classList.remove('hidden');
+                logoutButton.classList.remove('hidden');
+                // Redirect to app.html when authenticated
+                try {
+                    window.location.href = 'app.html';
+                } catch (e) {
+                    console.warn('Redirect failed, staying on page.');
+                }
+            } else {
+                console.log("User is logged out");
+                currentUserId = null;
+                userEmailDisplay.classList.add('hidden');
+                logoutButton.classList.add('hidden');
+                authScreen.style.display = 'block';
+                // Keep dashboard code removed; main page only shows auth screen
+                resetDashboardUI();
+            }
+        });
+
+        // Google Authentication
+        const googleProvider = new GoogleAuthProvider();
+        document.getElementById('google-login').addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                console.log("Google sign in successful:", result.user);
+            } catch (error) {
+                console.error("Google sign in error:", error);
+                showError("Google sign in failed: " + error.message);
+            }
+        });
+
+        // Phone Authentication
+        document.getElementById('phone-login').addEventListener('click', () => {
+            const dialog = document.getElementById('phone-verification-dialog');
+            dialog.classList.remove('hidden');
+            if (!recaptchaVerifier) {
+                recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'normal',
+                    'callback': (response) => {
+                        // Enable the send code button
+                        document.getElementById('send-code').disabled = false;
+                    }
+                });
+                recaptchaVerifier.render();
+            }
+        });
+
+        document.getElementById('send-code').addEventListener('click', async () => {
+            const phoneNumber = document.getElementById('phone').value;
+            try {
+                confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+                document.getElementById('verification-code-section').classList.remove('hidden');
+                showSuccess("Verification code sent!");
+            } catch (error) {
+                console.error("Error sending code:", error);
+                showError("Failed to send verification code: " + error.message);
+            }
+        });
+
+        document.getElementById('verify-code').addEventListener('click', async () => {
+            const code = document.getElementById('verification-code').value;
+            try {
+                const result = await confirmationResult.confirm(code);
+                console.log("Phone authentication successful:", result.user);
+            } catch (error) {
+                console.error("Error verifying code:", error);
+                showError("Invalid verification code");
+            }
+        });
+
+        function showError(message) {
+            const authError = document.getElementById('auth-error');
+            authError.textContent = message;
+            authError.classList.remove('hidden');
+        }
+
+        function showSuccess(message) {
+            const authError = document.getElementById('auth-error');
+            authError.textContent = message;
+            authError.classList.remove('hidden');
+            authError.classList.remove('bg-red-900', 'text-red-400', 'border-red-700');
+            authError.classList.add('bg-green-900', 'text-green-400', 'border-green-700');
+        }
+
+        // Defensive reset used when the user is signed out.
+        // Kept lightweight so this auth-only page doesn't error if dashboard HTML exists.
+        function resetDashboardUI() {
+            try {
+                const dash = document.getElementById('dashboard-screen');
+                if (dash) dash.classList.add('hidden');
+                const insights = document.getElementById('insights-container');
+                if (insights) {
+                    const placeholder = document.getElementById('insights-placeholder');
+                    if (placeholder) {
+                        insights.innerHTML = '';
+                        insights.appendChild(placeholder);
+                    }
+                }
+            } catch (e) {
+                // swallow any errors here - this is defensive cleanup only
+                console.debug('resetDashboardUI error (non-fatal):', e?.message || e);
+            }
+        }
+
+        signupButton.addEventListener('click', async () => {
+             const email = (emailInput.value || '').trim();
+             const password = passwordInput.value || '';
+             authError.classList.add('hidden'); // Hide previous errors
+
+             // Basic client-side validation to prevent common Firebase errors
+             if (!email) {
+                 showError('Please enter an email address.');
+                 return;
+             }
+             // Simple email regex for basic format checking
+             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+             if (!emailRe.test(email)) {
+                 showError('Please enter a valid email address.');
+                 return;
+             }
+             if (!password || password.length < 6) {
+                 showError('Password must be at least 6 characters.');
+                 return;
+             }
+
+             try {
+                 await createUserWithEmailAndPassword(auth, email, password);
+                 // onAuthStateChanged will handle the UI update
+             } catch (error) {
+                 console.error('Signup error:', error);
+                 // Map common Firebase auth errors to friendly messages
+                 const code = error.code || '';
+                 let message = 'Signup failed. Please try again.';
+                 if (code.includes('invalid-email')) message = 'The email address is not valid.';
+                 else if (code.includes('email-already-in-use')) message = 'This email is already registered. Try logging in.';
+                 else if (code.includes('weak-password')) message = 'Password is too weak. Use at least 6 characters.';
+                 else if (error.message) message = error.message;
+                 showError(message);
+             }
+         });
+
+        loginButton.addEventListener('click', async () => {
+            const email = (emailInput.value || '').trim();
+            const password = passwordInput.value || '';
+            authError.classList.add('hidden'); // Hide previous errors
+
+            if (!email) { showError('Please enter your email.'); return; }
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRe.test(email)) { showError('Please enter a valid email address.'); return; }
+            if (!password) { showError('Please enter your password.'); return; }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle the UI update
+            } catch (error) {
+                console.error('Login error:', error);
+                const code = error.code || '';
+                let message = 'Login failed. Please check your credentials.';
+                if (code.includes('user-not-found')) message = 'No account found for this email.';
+                else if (code.includes('wrong-password')) message = 'Incorrect password.';
+                else if (code.includes('invalid-email')) message = 'The email address is not valid.';
+                else if (error.message) message = error.message;
+                showError(message);
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // onAuthStateChanged will handle the UI update
+            } catch (error) {
+                console.error("Logout error:", error.message);
+                // Optionally show an error message to the user
+            }
+        });
+
+        // --- FILE HANDLING & DASHBOARD ---
+        // Dashboard UI and analysis code were removed from this file and moved to `app.html`.
+        // This keeps the auth page focused on authentication and prevents runtime errors
+        // from missing DOM elements. If you need these features on this page again,
+        // re-add the corresponding HTML and JS or open `app.html` after login.
+
+
+        // --- THEME MANAGEMENT ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme === 'dark');
+        } else {
+            setTheme(prefersDark.matches);
+        }
+
+        // Theme toggle click handler
+        themeToggle.addEventListener('click', () => {
+            const isDark = !document.documentElement.hasAttribute('data-theme');
+            setTheme(isDark);
+        });
+
+        // Listen for system theme changes
+        prefersDark.addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches);
+            }
+        });
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // onAuthStateChanged handles the initial view state (login or redirect)
+            console.log("DOM Loaded. Firebase Auth state listener is active.");
+            // Show Auth screen by default; if user is already signed in, onAuthStateChanged will redirect
+            authScreen.style.display = 'block';
+        });
+
+    </script>
+
+</body>
+</html>
+
